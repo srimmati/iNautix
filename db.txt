@@ -1,0 +1,115 @@
+create database leave
+
+create table newemployeedetails
+(
+EmployeeId int identity(1,1) primary key,
+ManagerId int,
+FirstName varchar(30),
+LastName varchar(30),
+EmployeeContact varchar(10),
+EmployeeDOB DateTime,
+Department varchar(30),
+EmployeeExperience int,
+DateHired DateTime,
+PanId varchar(15) unique,
+AdharId varchar(20) unique,
+EmployeeImgAddress varchar(30),
+EmployeeSalary int,
+NoOfUnpaidLeaves int,
+NoOfPaidLeaves int
+)
+
+create table newleavetable1
+(
+EmployeeId int foreign key references newemployeedetails(EmployeeId),
+StartDate DateTime,
+NoOfDays int,
+Reason varchar(30),
+LeaveStatus varchar(20) check(LeaveStatus in('Approved','Cancel','pending')),
+)
+
+create table cancelapproved
+(
+EmployeeId int foreign key references newemployeedetails(EmployeeId),
+StartDate DateTime,
+LeaveStatus varchar(20) check(LeaveStatus in('Approved','Cancel','pending')),
+)
+
+---------------------------------------------------------------------------------------
+
+create trigger updateleave on newleavetable1
+FOR UPDATE as 
+begin 
+declare @empid int 
+declare @days int
+select 'abc'
+select @empid=EmployeeId from inserted 
+select @days=NoOfDays from inserted
+declare @paid int
+select @paid=NoOfPaidLeaves from newemployeedetails where EmployeeId=@empid
+declare @status varchar(20)
+select @status=LeaveStatus from inserted where EmployeeId=@empid
+if(@status='Approved')
+begin
+if(@paid!=0)
+begin
+update newemployeedetails set NoOfPaidLeaves=NoOfPaidLeaves-@days where EmployeeId=@empid 
+end
+else
+begin
+update newemployeedetails set NoOfUnpaidLeaves=NoOfUnpaidLeaves-@days where EmployeeId=@empid 
+end
+end
+end
+
+
+
+create trigger cancelinc on cancelapproved
+FOR insert as 
+begin 
+declare @empid int 
+declare @days int
+select 'abc'
+select @empid=EmployeeId from inserted  
+select @days=NoOfDays from newleavetable1 where EmployeeId=@empid
+declare @paid int
+select @paid=NoOfPaidLeaves from newemployeedetails where EmployeeId=@empid
+declare @status varchar(20)
+select @status=LeaveStatus from inserted where EmployeeId=@empid
+if(@status='Cancel')
+begin
+update newemployeedetails set NoOfPaidLeaves=NoOfPaidLeaves+@days where EmployeeId=@empid 
+end
+end
+
+
+----------------------------------------------------------------------------------------------------------
+
+
+select * from newemployeedetails
+select * from newleavetable1
+select * from cancelapproved
+
+
+
+
+---------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+
+
+drop trigger updateleave
+sp_help  updateleave
+delete newemployeedetails
+drop table newemployeedetails
+drop table newleavetable
+select * from newleavetable1 where EmployeeId=11
+select * from newleavetable1 where EmployeeId in (select EmployeeId from newemployeedetails where ManagerId=9)
+select * from newleavetable1 where LeaveStatus='pending' and EmployeeId in (select EmployeeId from newemployeedetails where ManagerId=9)
+select count(*) from newemployeedetails where ManagerId=3
+insert newleavetable1 values(12,'07/06/2017',2,'sick','Approved')
+insert newleavetable1 values(11,'07/06/2017',2,'sick','pending')
+update newleavetable1 set LeaveStatus='Approved' where EmployeeId=11
